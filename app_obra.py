@@ -2,14 +2,14 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-# 1. CONFIGURACIÓN DE LA PÁGINA
+# 1. CONFIGURACIÓN
 st.set_page_config(page_title="Control Digital de Obra", layout="wide")
 
-# 2. TÍTULOS Y CABECERA
+# 2. TÍTULOS
 st.title("📊 Monitor de Control Integral: Producción y Ratios")
-st.subheader("Ingeniería de Control de Producción v5.0")
+st.subheader("Ingeniería de Control de Producción v5.1")
 
-# 3. BARRA LATERAL (ENTRADA DE DATOS DEL PARTE DIARIO)
+# 3. SIDEBAR (ENTRADAS)
 st.sidebar.header("📥 Parte Diario de Obra")
 dia_actual = st.sidebar.slider("Día de Obra", 1, 30, 10)
 
@@ -17,17 +17,13 @@ st.sidebar.subheader("🚀 Producción")
 paneles_hoy = st.sidebar.number_input("Paneles ejecutados hoy", min_value=0.1, value=2.0)
 
 st.sidebar.subheader("👷 Mano de Obra")
-# Este es el dato clave que pedías para la eficiencia
 horas_reales = st.sidebar.number_input("Horas totales cuadrilla hoy", min_value=0.1, value=12.0)
 
 st.sidebar.subheader("🧱 Materiales")
 m3_hormigon = st.sidebar.number_input("M3 Hormigón (Real)", value=25.5)
 
-# 4. LÓGICA DE CÁLCULO (INGENIERÍA DE COSTES)
-# Cálculo del ratio de eficiencia: Horas invertidas por cada panel
+# 4. LÓGICA DE CÁLCULO
 ratio_eficiencia = horas_reales / paneles_hoy
-
-# Generación de datos para la gráfica (Simulación de avance)
 dias = np.arange(1, dia_actual + 1)
 plan_previsto = dias * 2.0 * 12500 
 cert_real = dias * 1.8 * 12500 + np.random.normal(0, 3000, len(dias))
@@ -38,29 +34,29 @@ df_plan = pd.DataFrame({
     'Real Ejecutado': cert_real
 }).set_index('Día')
 
-# 5. PANEL DE MÉTRICAS (LO QUE VERÁN EN LA ENTREVISTA)
-col1, col2, col3 = st.columns(3)
+# 5. DASHBOARD (MÉTRICAS) - AHORA CON 4 COLUMNAS
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    st.metric("Certificación Acum.", f"{cert_real[-1]:,.2f} €")
+    st.metric("Paneles Hoy", f"{paneles_hoy:.1f} p")
 
 with col2:
-    # MÉTRICA DE MANO DE OBRA (EFICIENCIA)
-    # Compara el ratio real frente a un objetivo de 6h/pan
+    st.metric("Certificación Acum.", f"{cert_real[-1]:,.2f} €")
+
+with col3:
+    # Ratio Eficiencia h/pan
     objetivo = 6.0
     desviacion = objetivo - ratio_eficiencia
     st.metric("Eficiencia M.O.", f"{ratio_eficiencia:.1f} h/pan", delta=f"{desviacion:.1f} h", delta_color="normal")
 
-with col3:
-    # MÉTRICA DE MATERIALES
+with col4:
     margen_h = (25.0 - m3_hormigon) * 94.0
     st.metric("Margen Hormigón", f"{margen_h:.2f} €", delta=f"{margen_h:.2f}")
 
-# 6. GRÁFICA DE AVANCE
+# 6. GRÁFICA
 st.subheader("📈 Curva de Avance: Planificado vs Real")
 st.line_chart(df_plan)
 
-# 7. BOTÓN DE ACCIÓN
 if st.button("🚀 Generar Informe de Producción"):
-    st.success("¡Informe generado con éxito! Datos listos para envío a Jefatura.")
+    st.success("Informe generado con éxito.")
     st.balloons()
