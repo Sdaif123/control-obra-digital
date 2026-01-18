@@ -2,61 +2,57 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-# 1. CONFIGURACIÓN
+# 1. CONFIGURACIÓN TÉCNICA
 st.set_page_config(page_title="Control Digital de Obra", layout="wide")
 
-# 2. TÍTULOS
-st.title("📊 Monitor de Control Integral: Producción y Ratios")
-st.subheader("Ingeniería de Control de Producción v5.1")
+# 2. IDENTIFICACIÓN
+st.title("📊 Monitor de Control Integral")
+st.write("Estado de Producción y Ratios de Eficiencia")
 
-# 3. SIDEBAR (ENTRADAS)
-st.sidebar.header("📥 Parte Diario de Obra")
+# 3. ENTRADA DE DATOS (SIDEBAR)
+st.sidebar.header("📥 Parte Diario")
 dia_actual = st.sidebar.slider("Día de Obra", 1, 30, 10)
-
-st.sidebar.subheader("🚀 Producción")
-paneles_hoy = st.sidebar.number_input("Paneles ejecutados hoy", min_value=0.1, value=2.0)
-
-st.sidebar.subheader("👷 Mano de Obra")
+paneles_hoy = st.sidebar.number_input("Paneles ejecutados hoy", min_value=0.0, value=2.0)
 horas_reales = st.sidebar.number_input("Horas totales cuadrilla hoy", min_value=0.1, value=12.0)
-
-st.sidebar.subheader("🧱 Materiales")
 m3_hormigon = st.sidebar.number_input("M3 Hormigón (Real)", value=25.5)
 
-# 4. LÓGICA DE CÁLCULO
-ratio_eficiencia = horas_reales / paneles_hoy
-dias = np.arange(1, dia_actual + 1)
-plan_previsto = dias * 2.0 * 12500 
-cert_real = dias * 1.8 * 12500 + np.random.normal(0, 3000, len(dias))
+# 4. LÓGICA DE CONTROL DE PLANIFICACIÓN
+PLAN_DIARIO = 2.0 
+desvio_unidades = paneles_hoy - PLAN_DIARIO
+cumplimiento_pct = (paneles_hoy / PLAN_DIARIO) * 100 if PLAN_DIARIO > 0 else 0
 
-df_plan = pd.DataFrame({
-    'Día': dias,
-    'Planificado': plan_previsto,
-    'Real Ejecutado': cert_real
-}).set_index('Día')
+# Lógica de Mano de Obra
+ratio_h_p = horas_reales / paneles_hoy if paneles_hoy > 0 else 0
+objetivo_h_p = 6.0
+ahorro_horas = objetivo_h_p - ratio_h_p
 
-# 5. DASHBOARD (MÉTRICAS) - AHORA CON 4 COLUMNAS
+# 5. DASHBOARD DE INDICADORES (CENTRO)
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    st.metric("Paneles Hoy", f"{paneles_hoy:.1f} p")
+    # Muestra los paneles, el desvío numérico y el % de cumplimiento
+    st.metric("PANELES HOY", f"{paneles_hoy:.1f} p", delta=f"{desvio_unidades:+.1f} vs plan")
+    st.write(f"**Cumplimiento: {cumplimiento_pct:.0f}%**")
 
 with col2:
-    st.metric("Certificación Acum.", f"{cert_real[-1]:,.2f} €")
+    # Eficiencia de mano de obra h/pan
+    st.metric("EFICIENCIA M.O.", f"{ratio_h_p:.1f} h/p", delta=f"{ahorro_horas:.1f} h", delta_color="normal")
 
 with col3:
-    # Ratio Eficiencia h/pan
-    objetivo = 6.0
-    desviacion = objetivo - ratio_eficiencia
-    st.metric("Eficiencia M.O.", f"{ratio_eficiencia:.1f} h/pan", delta=f"{desviacion:.1f} h", delta_color="normal")
+    # Margen económico del hormigón
+    margen_h = (25.0 - m3_hormigon) * 94.0
+    st.metric("MARGEN HORMIGÓN", f"{margen_h:.2f} €")
 
 with col4:
-    margen_h = (25.0 - m3_hormigon) * 94.0
-    st.metric("Margen Hormigón", f"{margen_h:.2f} €", delta=f"{margen_h:.2f}")
+    # Valor de la producción acumulada
+    total_cert = (dia_actual * 1.8 * 12500) 
+    st.metric("CERTIFICACIÓN", f"{total_cert:,.2f} €")
 
-# 6. GRÁFICA
-st.subheader("📈 Curva de Avance: Planificado vs Real")
-st.line_chart(df_plan)
-
-if st.button("🚀 Generar Informe de Producción"):
-    st.success("Informe generado con éxito.")
-    st.balloons()
+# 6. GRÁFICA DE AVANCE
+st.subheader("📈 Comparativa: Avance Real vs Planificado")
+dias = np.arange(1, dia_actual + 1)
+df_avance = pd.DataFrame({
+    'Planificado': dias * PLAN_DIARIO * 12500,
+    'Real': dias * 1.8 * 12500
+}, index=dias)
+st.line_chart(df_avance)
